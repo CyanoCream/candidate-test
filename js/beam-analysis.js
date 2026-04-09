@@ -110,27 +110,30 @@ BeamAnalysis.analyzer.simplySupported = class {
         this.load = load;
     }
     getDeflectionEquation(beam, load) {
+        let L = beam.primarySpan;
+        let w = load;
         return function (x) {
-            return {
-                x: x,
-                y: null
-            };
+            let EI = beam.material.properties.EI;
+            let x_mm = x * 1000;
+            let L_mm = L * 1000;
+            let y = (-w * x_mm) / (24 * EI) * (Math.pow(L_mm, 3) - 2 * L_mm * Math.pow(x_mm, 2) + Math.pow(x_mm, 3));
+            return { x: x, y: y };
         };
     }
     getBendingMomentEquation(beam, load) {
+        let L = beam.primarySpan;
+        let w = load;
         return function (x) {
-            return {
-                x: x,
-                y: null
-            };
+            let y = (w * x / 2) * (L - x);
+            return { x: x, y: y };
         };
     }
     getShearForceEquation(beam, load) {
+        let L = beam.primarySpan;
+        let w = load;
         return function (x) {
-            return {
-                x: x,
-                y: null
-            };
+            let y = w * (L / 2 - x);
+            return { x: x, y: y };
         };
     }
 };
@@ -147,28 +150,68 @@ BeamAnalysis.analyzer.twoSpanUnequal = class {
         this.beam = beam;
         this.load = load;
     }
+    
+    getReactions(beam, load) {
+        let w = load; 
+        let L1 = beam.primarySpan;
+        let L2 = beam.secondarySpan || L1;
+        
+        let MB = (-w * (Math.pow(L1, 3) + Math.pow(L2, 3))) / (8 * (L1 + L2));
+        let RA = (w * L1 / 2) + (MB / L1);
+        let RC = (w * L2 / 2) + (MB / L2);
+        let RB_right = (w * L2 / 2) - (MB / L2);
+        
+        return { w: w, L1: L1, L2: L2, MB: MB, RA: RA, RC: RC, VB_right: RB_right };
+    }
+
     getDeflectionEquation(beam, load) {
+        let {w, L1, L2, MB, RA, RC, VB_right} = this.getReactions(beam, load);
         return function (x) {
-            return {
-                x: x,
-                y: null
-            };
+            let EI = beam.material.properties.EI;
+            let y = 0;
+            let RA_N = RA * 1000;
+            let VB_right_N = VB_right * 1000;
+            let MB_Nmm = MB * 1000000;
+            let L1_mm = L1 * 1000;
+            let L2_mm = L2 * 1000;
+            let w_Nmm = w;
+            let x_mm = x * 1000;
+            
+            if (x <= L1) {
+                let C1 = (w_Nmm * Math.pow(L1_mm, 3) / 24) - (RA_N * Math.pow(L1_mm, 2) / 6);
+                y = (1 / EI) * (RA_N * Math.pow(x_mm, 3) / 6 - w_Nmm * Math.pow(x_mm, 4) / 24 + C1 * x_mm);
+            } else {
+                let u = x_mm - L1_mm;
+                let D1 = - (MB_Nmm * L2_mm / 2) - (VB_right_N * Math.pow(L2_mm, 2) / 6) + (w_Nmm * Math.pow(L2_mm, 3) / 24);
+                y = (1 / EI) * ((MB_Nmm * Math.pow(u, 2) / 2) + (VB_right_N * Math.pow(u, 3) / 6) - (w_Nmm * Math.pow(u, 4) / 24) + D1 * u);
+            }
+            return { x: x, y: y };
         };
     }
     getBendingMomentEquation(beam, load) {
+        let {w, L1, L2, MB, RA, RC, VB_right} = this.getReactions(beam, load);
         return function (x) {
-            return {
-                x: x,
-                y: null
-            };
+            let y = 0;
+            if (x <= L1) {
+                y = (RA * x) - (w * Math.pow(x, 2) / 2);
+            } else {
+                let u = x - L1;
+                y = MB + (VB_right * u) - (w * Math.pow(u, 2) / 2);
+            }
+            return { x: x, y: y };
         };
     }
     getShearForceEquation(beam, load) {
+        let {w, L1, L2, MB, RA, RC, VB_right} = this.getReactions(beam, load);
         return function (x) {
-            return {
-                x: x,
-                y: null
-            };
+            let y = 0;
+            if (x <= L1) {
+                y = RA - (w * x);
+            } else {
+                let u = x - L1;
+                y = VB_right - (w * u);
+            }
+            return { x: x, y: y };
         };
     }
 };

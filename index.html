@@ -2,13 +2,25 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
-		<title>3D Illustration Test</title>
-		<style>
-			body { margin: 0; }
-		</style>
+		<title>3D Illustration Viewer</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="css/style.css">
 	</head>
 	<body>
-        <div class="card p-3" id="illustration-3d-container"></div>
+        <header>
+            <div class="title-container">
+                <h1>CLT Structure Analysis</h1>
+                <p class="subtitle">3D Architectural Illustration</p>
+            </div>
+        </header>
+
+        <div id="illustration-3d-container"></div>
+
+        <div class="controls-hint">
+            <div class="hint-item"><b>Rotate</b> Left Click</div>
+            <div class="hint-item"><b>Pan</b> Right Click</div>
+            <div class="hint-item"><b>Zoom</b> Scroll</div>
+        </div>
 
         <!-- 3D Renderer -->
         <script type="importmap">
